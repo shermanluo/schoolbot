@@ -11,7 +11,7 @@ function extractEmails(items) {
 }
 
 function sendAnnouncement(announcement, classID) {
-  classID = "Y2lzY29zcGFyazovL3VzL1JPT00vOGFlYWExZDAtYWI5Yy0xMWU3LWEyOWItMmRlMTAyNTBkMjRm"
+  //classID = "Y2lzY29zcGFyazovL3VzL1JPT00vOGFlYWExZDAtYWI5Yy0xMWU3LWEyOWItMmRlMTAyNTBkMjRm"
   db.notifications.create(classID, announcement.title + ": " + announcement.body).then(function(user) {
   }); 
   request({ //Collecting team memberships
@@ -86,13 +86,15 @@ module.exports = function(controller) {
   controller.hears(['assign (.*) to (.*)'], 'direct_message', function(bot, message) {
     db.users.findOne(message.data.personId).then((user) => {
       if (user.type != 'teacher') return
-    bot.startConversation(message, function(err, convo) {
-      if (message.match[2] == 'everyone' || message.match[2] == 'everybody') {
-        //add assignment to every user in db
-      }
+      bot.startConversation(message, function(err, convo) {
+        var assignmentName = message.match[1]
+        var assignee = message.match[2]
+      
+        
+      })
       //add assignment to message.match[2] in db
     })
-  })})
+  })
   
   controller.hears(['(view )?(.*)\'s grade(s)|(book)'], 'direct_message', function(bot, message) {
     db.users.findOne(message.data.personId).then((user) => {
