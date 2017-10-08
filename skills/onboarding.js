@@ -1,3 +1,4 @@
+var db = require('../db')
 var request = require('request')
 module.exports = function(controller) {
     controller.hears(['^invite (.*)'], 'direct_message,direct_mention', function(bot, message) {
@@ -15,9 +16,12 @@ module.exports = function(controller) {
           "roomId": "Y2lzY29zcGFyazovL3VzL1JPT00vOGFlYWExZDAtYWI5Yy0xMWU3LWEyOWItMmRlMTAyNTBkMjRm", 
           "personEmail": email
       },
-      }, function (error, response, body){ //SENDS A MESSAGE
+      }, function (error, response, body){ 
+          db.users.findOne(message.personId).then(function(res) {
+            db.users.create(res.userID, email, 'student', [res.classrooms[0]]);})
+      
           bot.reply(message, email + " was added to the room and notified!");
-              request({
+          request({//SENDS A MESSAGE
           url: "https://api.ciscospark.com/v1/messages",
           method: "POST",
           headers: {

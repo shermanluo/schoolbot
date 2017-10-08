@@ -19,8 +19,6 @@ module.exports = function(controller, bot) {
 
     webserver.use(express.static('public'));
     webserver.get('/auth', function (req, res) {
-      console.log(req)
-      console.log(req.query.code)
       request({ //sending messages to everyone
         url: "https://api.ciscospark.com/v1/access_token",
         method: "POST",
@@ -38,11 +36,8 @@ module.exports = function(controller, bot) {
         }, function (error, response, body){
           const access_token = body.access_token
           const refresh_token = body.refresh_token
-          console.log(access_token)
-          //SAVE IN DB B O I
+          res.send(access_token)
         });
-      
-      res.send("furkyo")
     })
 
     webserver.listen(process.env.PORT || 3000, null, function() {

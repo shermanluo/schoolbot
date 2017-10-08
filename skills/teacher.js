@@ -1,3 +1,4 @@
+var db = require('../db');
 var wordfilter = require('wordfilter');
 var request = require('request');
 
@@ -9,7 +10,10 @@ function extractEmails(items) {
   return emails
 }
 
-function sendAnnouncement(announcement) {
+function sendAnnouncement(announcement, classID) {
+  classID = "Y2lzY29zcGFyazovL3VzL1JPT00vOGFlYWExZDAtYWI5Yy0xMWU3LWEyOWItMmRlMTAyNTBkMjRm"
+  db.notifications.create(classID, announcement.title + ": " + announcement.body).then(function(user) {
+  }); 
   request({ //Collecting team memberships
   url: "https://api.ciscospark.com/v1/memberships",
   method: "GET",
@@ -19,7 +23,7 @@ function sendAnnouncement(announcement) {
   },
   json: true,   // <--Very important!!!
   qs: {
-      "roomId": "Y2lzY29zcGFyazovL3VzL1JPT00vOGFlYWExZDAtYWI5Yy0xMWU3LWEyOWItMmRlMTAyNTBkMjRm"
+      "roomId": classID
   },
   }, function (error, response, body){
     console.log(body);
@@ -80,36 +84,46 @@ module.exports = function(controller) {
   });
   
   controller.hears(['assign (.*) to (.*)'], 'direct_message', function(bot, message) {
+    db.users.findOne(message.data.personId).then((user) => {
+      if (user.type != 'teacher') return
     bot.startConversation(message, function(err, convo) {
       if (message.match[2] == 'everyone' || message.match[2] == 'everybody') {
         //add assignment to every user in db
       }
       //add assignment to message.match[2] in db
     })
-  })
+  })})
   
   controller.hears(['(view )?(.*)\'s grade(s)|(book)'], 'direct_message', function(bot, message) {
+    db.users.findOne(message.data.personId).then((user) => {
+      if (user.type != 'teacher') return
     //lots of database stuff
     var student = message.match[1];
     
     bot.reply(message, student)
-  })
+  })})
   
   controller.hears(['(view )?grade(s)|(book)'], 'direct_message', function(bot, message) {
+    db.users.findOne(message.data.personId).then((user) => {
+      if (user.type != 'teacher') return
     //lots of database stuff
     var gradesString = "";
     
     bot.reply(message, gradesString)
-  })
+  })})
   
   controller.hears(['grade (.*) for (.*)'], 'direct_message', function(bot, message) {
+    db.users.findOne(message.data.personId).then((user) => {
+      if (user.type != 'teacher') return
     var assignmentTitle = message.match[1];
     var student = message.match[2];
     //lots of database stuff
     bot.reply(message, "here's your grades yo")
-  })
+  })})
   
   controller.hears(['((make)|(create))( new)? assignment'], 'direct_message', function(bot, message) {
+    db.users.findOne(message.data.personId).then((user) => {
+      if (user.type != 'teacher') return
     var assignment = {title: "", maxPoints: 0, duedate: "", description: ""};
     bot.startConversation(message, function(err, convo) {
       convo.ask('What is the title of the new assignment?', function(response, convo) {
@@ -154,8 +168,11 @@ module.exports = function(controller) {
       convo.next()
     })
   })
+                                                 })
   
   controller.hears(['^make( new)? announcement'], 'direct_message', function(bot, message) {
+    db.users.findOne(message.data.personId).then((user) => {
+      if (user.type != 'teacher') return
       var announcement = {title: "", body:""};
       bot.startConversation(message, function(err, convo) {
             convo.ask('What should the title of this announcement be?', function(response, convo) {
@@ -169,7 +186,13 @@ module.exports = function(controller) {
                         pattern: bot.utterances.yes,
                         callback: function(response,convo) {
                           convo.say('should call api here and store ' + announcement.title);
-                          sendAnnouncement(announcement);
+                          var classID = "" ;
+                          convo.ask("Please type the class that this announcement should go to", function(response, convo){
+                              var classname = response.text;
+                              //classID = db.GETIDFROMCLASSNAME(classname)
+                              convo.next();
+                          })
+                          sendAnnouncement(announcement, classID);
                           convo.next();
 
                         }
@@ -196,7 +219,7 @@ module.exports = function(controller) {
                 convo.next();
             });
         });
-  });
+  })});
 
 
   /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */

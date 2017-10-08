@@ -1,7 +1,11 @@
+var db = require('../db');
 var request = require('request');
 module.exports = function(controller) {
     controller.hears(['^summarize'], 'direct_message,direct_mention', function(bot, message) {
-      bot.reply(message, "I think its working");
+      var room;
+      db.users.findOne(message.data.personId).then(function(user) {
+        room = user.classrooms[0];
+        bot.reply(message, "I think its working");
       request({ //gets messages
       url: "https://api.ciscospark.com/v1/messages",
       method: "GET",
@@ -12,7 +16,7 @@ module.exports = function(controller) {
       },
       json: true,   
       qs: {
-       'roomId': 'Y2lzY29zcGFyazovL3VzL1JPT00vOGFlYWExZDAtYWI5Yy0xMWU3LWEyOWItMmRlMTAyNTBkMjRm'
+       'roomId': room
       }
       }, function (error, response, body){
         var s = "";
@@ -66,6 +70,8 @@ module.exports = function(controller) {
           })
     })
     })
+      });
+      
       
      
                                                                                                 
