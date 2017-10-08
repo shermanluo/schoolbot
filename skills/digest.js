@@ -1,11 +1,10 @@
 var db = require('../db');
 var request = require('request');
 module.exports = function(controller) {
-    controller.hears(['^summarize'], 'direct_message,direct_mention', function(bot, message) {
+    controller.hears(['(.*)summar(y|ize)(.*)'], 'direct_message,direct_mention', function(bot, message) {
       var room;
       db.users.findOne(message.data.personId).then(function(user) {
         room = user.classrooms[0];
-        bot.reply(message, "I think its working");
       request({ //gets messages
       url: "https://api.ciscospark.com/v1/messages",
       method: "GET",
@@ -42,12 +41,25 @@ module.exports = function(controller) {
                   "sentences-number": 3
             }
             }, function (error, response, body){
-              var sentences = " ";
-              for (var i = 0; i < body.sentences.length; i++) {
-                sentences = sentences + " " + body.sentences[i];
+              var sentences = "##Here's a <b>summary</b> of today's discussion: ";
+              for (var i = body.sentences.length-1; i >=0; i--) {
+                sentences = sentences + "<br>-" + body.sentences[i];
               }
-              bot.reply(message, "Summary:" + "\n" + sentences);
-          request({
+              request({
+          url: "https://api.ciscospark.com/v1/messages",
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Authorization': 'Bearer YzdiMjZkMzktNzcwYy00ZmViLWE0ZWUtY2U1ODM3ZjNmMTJiM2I3Mzc2NzItZDBi'
+          },
+          json: true,   // <--Very important!!!
+          body: {
+            'toPersonId': message.data.personId,
+            'markdown': sentences 
+          }
+        }, function (error, response, body){
+                
+                 request({
             url: "https://api.aylien.com/api/v1/concepts",
             method: "GET",
             headers: {
@@ -61,13 +73,33 @@ module.exports = function(controller) {
             }
             }, function (error, response, body){
               var parent = body.concepts;
-              var concepts = "Concepts:\n";
+              var concepts = "*Keep these in mind. These are important as well!* <br>";
               for (var i = 0; i < Object.keys(parent).length; i++) {
                 var url = Object.keys(parent)[i];
-                concepts += parent[url].surfaceForms[0].string + " " + Object.keys(parent)[i] + "\n";
+                concepts += '[' +parent[url].surfaceForms[0].string + "](" + Object.keys(parent)[i] + ") <br>";
               }
-              bot.reply(message, concepts);
+              request({
+                url: "https://api.ciscospark.com/v1/messages",
+                method: "POST",
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                  'Authorization': 'Bearer YzdiMjZkMzktNzcwYy00ZmViLWE0ZWUtY2U1ODM3ZjNmMTJiM2I3Mzc2NzItZDBi'
+                },
+                json: true, 
+                body: {
+                  'toPersonId': message.data.personId,
+                  'markdown': concepts //<= CHANGE THIS
+                }
+        }, function (error, response, body){
+                
+                
+              })
           })
+                
+                
+              })
+              
+         
     })
     })
       });

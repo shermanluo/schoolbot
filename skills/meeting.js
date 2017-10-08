@@ -11,15 +11,15 @@ function extractEmails(items) {
 
 module.exports = function(controller) {
 
-    controller.hears(['meeting'], 'direct_message,direct_mention', function(bot, message) {
+    controller.hears(['(.)* start class'], 'direct_message,direct_mention', function(bot, message) {
         var emails
         bot.startConversation(message, function(err, convo) {
-            convo.say('Okay I will create a meeting for you right away!');
+            convo.say('Sure! 😁 I will organize a class session for you right away!');
 
-            convo.ask('What is the name of the meeting?', function(response, convo) {
+            convo.ask("What do you want to call this class session? Make sure to be descriptive so students won't get lost!", function(response, convo) {
 
-                convo.say('Great, I will invite all the students to the meeting');
-                db.users.findOne(message.personId).then(function(user) {
+                convo.say('Great! I will invite all the students to the meeting now. Have a great class!');
+                db.users.findOne(message.data.personId).then(function(user) {
                     var classroom = user.classrooms[0]; 
                     request({ //Collecting team memberships
                         url: "https://api.ciscospark.com/v1/memberships",
@@ -30,7 +30,7 @@ module.exports = function(controller) {
 
                         },
                         qs: {
-                            'roomId': 'Y2lzY29zcGFyazovL3VzL1JPT00vOGFlYWExZDAtYWI5Yy0xMWU3LWEyOWItMmRlMTAyNTBkMjRm'
+                            'roomId': classroom
                         },
                         json: true,   // <--Very important!!!
 
@@ -47,15 +47,20 @@ module.exports = function(controller) {
                                     json: true,   // <--Very important!!!
                                     body: {
                                         "toPersonEmail": emails[i],
-                                        "text": "A ghetto meeting is starting"
+                                        "text": "Class is starting right now! See you there and don't forget to mark yourself present :)"
                                     },
                                 }, function (error, response, body){
                                        request({
                                            url: "https://api.ciscospark.com/v1/rooms/" + classroom,
+                                         headers: {
+                                        'Content-Type': 'application/json; charset=utf-8',
+                                        'Authorization': 'Bearer YzdiMjZkMzktNzcwYy00ZmViLWE0ZWUtY2U1ODM3ZjNmMTJiM2I3Mzc2NzItZDBi'
+                                        }, 
+  
                                            method: "GET",
                                            json: true
                                        }, function (error, response, body) {
-                                           var sipnum = body.sipAdress.split("@")[0];
+                                           var sipnum = body.sipAddress;
                                            request({ //Collecting team memberships
                                                url: "https://api.tropo.com/1.0/sessions?action=create&token=4e464a467046517a6a515772576a70774b5a7961614d664d6e6f7249577a505147725472484b57525966676e&numbertodial=" + sipnum,
                                                method: "GET",

@@ -34,6 +34,7 @@ module.exports = function(controller, bot) {
           redirect_uri: "https://diamond-pheasant.glitch.me/auth"
         },
         }, function (error, response, body){
+
           const access_token = body.access_token
           const refresh_token = body.refresh_token
           res.send(access_token)

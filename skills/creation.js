@@ -1,7 +1,7 @@
 var db = require('../db');
 var request = require('request')
 module.exports = function(controller) {
-    controller.hears(['^create (class)?room (.*)'], 'direct_message,direct_mention', function(bot, message) {   
+    controller.hears(['(create|new) (class|classroom) (.*)'], 'direct_message,direct_mention', function(bot, message) {   
       bot.startConversation(message, function(err, convo) {
         var name = message.match[2];
         request({
@@ -16,7 +16,7 @@ module.exports = function(controller) {
             "title": name
           }
         }, function (error, response, body){
-            convo.ask('Please paste the text shown after signing in using the following link: https://api.ciscospark.com/v1/authorize?client_id=C1d18f3fcae99ad889793a17bbe18993feaee5546d21fe23385dbf4e133ec426c&response_type=code&redirect_uri=https%3A%2F%2Fdiamond-pheasant.glitch.me%2Fauth&scope=spark%3Amessages_read%20spark%3Akms', function(response, convo) {
+            convo.ask('In order to make a class we need to make sure our bot has the permissions to manage the group! Please paste the text shown after signing in using the following link: https://api.ciscospark.com/v1/authorize?client_id=C1d18f3fcae99ad889793a17bbe18993feaee5546d21fe23385dbf4e133ec426c&response_type=code&redirect_uri=https%3A%2F%2Fdiamond-pheasant.glitch.me%2Fauth&scope=spark%3Amessages_read%20spark%3Akms', function(response, convo) {
               var authID = response.text
               console.log(body)
               var roomId = body.id;
@@ -75,4 +75,3 @@ module.exports = function(controller) {
   
   })
 };
-

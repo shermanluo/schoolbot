@@ -2,63 +2,65 @@ var db = require('../db');
 var request = require('request');
 module.exports = function(controller) {
   
-    controller.hears(['^view announcements(.*)'], 'direct_message,direct_mention', function(bot, message) {
-        var classname = ""; 
+    controller.hears(['^(?:list|view|show|display) announcement(s?)'], 'direct_message,direct_mention', function(bot, message) { 
         bot.startConversation(message, function(err, convo) {
-            convo.ask("what class?", function(response, convo) {
-                classname = response.text; 
+            convo.ask("for what class?", function(response, convo) {
+                var classname = response.text; 
+                console.log(classname); 
+                db.classrooms.findByName(classname).then(function(user) {
+                    var classobj = user;
+                    db.notifications.findAll(classobj.classID).then(function(user1) {
+                        var announcementlist = user1; 
+                        convo.say("Hey! Someone wants you to know something!");
+                        for (var i = 0; i < announcementlist.length; i++) {
+                            convo.say(announcementlist[i].notificationMessage);
+                        }
+                    }); 
+                });
                 convo.next();
             }); 
         });
-        var announcementlist = null; 
-        var classobj = null;
-        db.classrooms.findByName(classname).then(function(user) {
-          classobj = user;
-          db.notifications.findAll(classobj.classID).then(function(user) {
-            announcementlist = user; 
-            console.log("fuckdslfjsdk")
-            console.log(announcementlist.length)
-            for (var i = 0; i < announcementlist.length; i++) {
-                bot.reply(message, announcementlist[i].notificationMessage);
-            }
-          }); 
-        });
     });
   
-    controller.hears(['^(?:list|view|show|display) assignments(.*)'], 'direct_message,direct_mention', function(bot, message) {
-        var gradeslist = null; 
-        db.assignments.findByStudent(message.personId).then(function(user) { 
-            gradeslist = user; 
+    controller.hears(['^(?:list|view|show|display) assignment(s?)'], 'direct_message,direct_mention', function(bot, message) {
+        db.assignments.findByStudent(message.data.personId).then(function(user) { 
+            console.log(message.data.personId);
+            var gradeslist = user;  
             bot.startConversation(message, function(err, convo) {
                 var assignmentname = ""; 
-                convo.ask("what assignment?", function(response, convo) {
-                    //
-                    assignmentname = response.text
+                convo.ask("for what assignment?", function(response, convo) {
+                    assignmentname = response.text;
                     if (assignmentname == "all") {
-                          bot.reply(message, "Here are your grades");
                           for (var i = 0; i < gradeslist.length; i++) {
-                              bot.reply(message, gradeslist[i].title + ": " + gradeslist[i].grade);
+                              if (gradeslist[i].grade == -1) {
+                                convo.say("Hmm. \"" + gradeslist[i].title + "\" seems to not have been graded yet.")
+                            } else {
+                                convo.say("For the assignment \"" + gradeslist[i].title + "\", you got " + gradeslist[i].grade + " points");
+                            }
+            
                           }
                     } else {
-                        var namematched = false; 
-                        var assignment = ""; 
+                        var assignment = null; 
                         for (var i = 0; i < gradeslist.length; i++) {
-                            if (gradeslist[i].title == assignmentname) {
-                                namematched = true; 
+                            if (gradeslist[i].title == assignmentname) { 
                                 assignment = gradeslist[i]; 
                             }
                         }
-                        if (namematched) {
-                            convo.say(assignment.title + ": " + assignment.grade);
+                        if (assignment != null) {
+                            convo.say("Here is your assignment information!");
+                            if (assignment.grade == -1) {
+                                convo.say("Hmm. No assignments have been graded yet.")
+                            } else {
+                              convo.say("For the assignment \"" + assignment.title + "\" you got " + assignment.grade + " points.");
+                            }
                         } else {
-                            convo.say("You do not seem to have an assignment called " + assignmentname); 
+                            convo.say("Hmm. You do not seem to have an assignment called \"" + assignmentname + "\"."); 
                         }
                     }
                 convo.next();
                 }); 
             });
-        }); 
-        
+        });   
     });
   
 };

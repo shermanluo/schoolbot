@@ -3,124 +3,173 @@ var wordfilter = require('wordfilter');
 var request = require('request');
 
 function extractEmails(items) {
-  var emails = [];
-  for (var i = 0; i < items.length; i++) {
-    emails.push(items[i].personEmail);
-  }
-  return emails
+    var emails = [];
+    for (var i = 0; i < items.length; i++) {
+        emails.push(items[i].personEmail);
+    }
+    return emails
 }
 
 function sendAnnouncement(announcement, classID) {
-  //classID = "Y2lzY29zcGFyazovL3VzL1JPT00vOGFlYWExZDAtYWI5Yy0xMWU3LWEyOWItMmRlMTAyNTBkMjRm"
-  db.notifications.create(classID, announcement.title + ": " + announcement.body).then(function(user) {
-  }); 
-  request({ //Collecting team memberships
-  url: "https://api.ciscospark.com/v1/memberships",
-  method: "GET",
-  headers: {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Authorization': 'Bearer YzdiMjZkMzktNzcwYy00ZmViLWE0ZWUtY2U1ODM3ZjNmMTJiM2I3Mzc2NzItZDBi'
-  },
-  json: true,   // <--Very important!!!
-  qs: {
-      "roomId": classID
-  },
-  }, function (error, response, body){
-    console.log(body);
-    var items = body.items;
-    for (var i = 0; i < items.length; i++) {
-      request({ //sending messages to everyone
-      url: "https://api.ciscospark.com/v1/messages",
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': 'Bearer YzdiMjZkMzktNzcwYy00ZmViLWE0ZWUtY2U1ODM3ZjNmMTJiM2I3Mzc2NzItZDBi'
-      },
-      json: true,   // <--Very important!!!
-      body: {
-          "toPersonEmail": items[i].personEmail,
-          "text": "Announcement: " + announcement.title +"\n" + announcement.body
-      },
-      }, function (error, response, body){
+    //classID = "Y2lzY29zcGFyazovL3VzL1JPT00vOGFlYWExZDAtYWI5Yy0xMWU3LWEyOWItMmRlMTAyNTBkMjRm"
+    db.notifications.create(classID, announcement.title + ": " + announcement.body).then(function(user) {
+    }); 
+    request({ //Collecting team memberships
+        url: "https://api.ciscospark.com/v1/memberships",
+        method: "GET",
+        headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Authorization': 'Bearer YzdiMjZkMzktNzcwYy00ZmViLWE0ZWUtY2U1ODM3ZjNmMTJiM2I3Mzc2NzItZDBi'
+        },
+        json: true,   // <--Very important!!!
+        qs: {
+            "roomId": classID
+        },
+    }, function (error, response, body){
+           console.log(body);
+           var items = body.items;
+           for (var i = 0; i < items.length; i++) {
+               request({ //sending messages to everyone
+                   url: "https://api.ciscospark.com/v1/messages",
+                   method: "POST",
+                   headers: {
+                       'Content-Type': 'application/json; charset=utf-8',
+                       'Authorization': 'Bearer YzdiMjZkMzktNzcwYy00ZmViLWE0ZWUtY2U1ODM3ZjNmMTJiM2I3Mzc2NzItZDBi'
+                   },
+                   json: true,   // <--Very important!!!
+                   body: {
+                       "toPersonEmail": items[i].personEmail,
+                       "markdown": "##Announcement:  " + announcement.title +"<br> <p>" + announcement.body + "</p>"
+                   },
+               }, function (error, response, body){
 
-      });
-    }
-  });
+                  });
+            }
+       });
 } 
 
 
 module.exports = function(controller) {
-  /* Collect some very simple runtime stats for use in the uptime/debug command */
-  if (controller == -1){
-    return sendAnnouncement;
-  }
-  var stats = {
-      triggers: 0,
-      convos: 0,
-  }
+    /* Collect some very simple runtime stats for use in the uptime/debug command */
+    if (controller == -1){
+        return sendAnnouncement;
+    }
+    var stats = {
+        triggers: 0,
+        convos: 0,
+    }
 
-  controller.on('heard_trigger', function() {
-      stats.triggers++;
-  });
+    controller.on('heard_trigger', function() {
+        stats.triggers++;
+    });
 
-  controller.on('conversationStarted', function() {
-      stats.convos++;
-  });
+    controller.on('conversationStarted', function() {
+        stats.convos++;
+    });
 
 
-  controller.hears(['^uptime','^debug'], 'direct_message,direct_mention', function(bot, message) {
+    controller.hears(['^uptime','^debug'], 'direct_message,direct_mention', function(bot, message) {
 
-      bot.createConversation(message, function(err, convo) {
-          if (!err) {
-              convo.setVar('uptime', formatUptime(process.uptime()));
-              convo.setVar('convos', stats.convos);
-              convo.setVar('triggers', stats.triggers);
+        bot.createConversation(message, function(err, convo) {
+            if (!err) {
+                convo.setVar('uptime', formatUptime(process.uptime()));
+                convo.setVar('convos', stats.convos);
+                convo.setVar('triggers', stats.triggers);
 
-              convo.say('My main process has been online for {{vars.uptime}}. Since booting, I have heard {{vars.triggers}} triggers, and conducted {{vars.convos}} conversations.');
-              convo.activate();
+                convo.say('My main process has been online for {{vars.uptime}}. Since booting, I have heard {{vars.triggers}} triggers, and conducted {{vars.convos}} conversations.');
+                convo.activate();
+            }
+        });
+
+    });
+    /*
+    controller.hears(['(view )?grade(s)|(book)'], 'direct_message', function(bot, message) {
+          console.log('regex is eveb being invokes3');
+
+      db.users.findOne(message.data.personId).then((user) => {
+        if (user.type != 'teacher') return
+        var classID = user.classrooms[0]
+        var gradebook = {}
+        db.users.findByClassroom(classID).then((userArray) => {
+          for (var i = 0; i < userArray.length; i++) {
+            var student = userArray[i]
+            db.assignments.findByStudent(student.userID).then((assignmentArray) => {
+              var sum = 0
+              var total = 0
+              for (var j = 0; j < assignmentArray; j++) {
+                var assign = assignmentArray[j]
+                sum += assign.grade
+                total += assign.maxPoints
+              }
+              gradebook[student.userID] = sum / total
+            })
           }
-      });
-
-  });
-  
-  controller.hears(['assign (.*) to (.*)'], 'direct_message', function(bot, message) {
-    db.users.findOne(message.data.personId).then((user) => {
-      if (user.type != 'teacher') return
-      bot.startConversation(message, function(err, convo) {
-        var assignmentName = message.match[1]
-        var assignee = message.match[2]
-      
-        
-      })
-      //add assignment to message.match[2] in db
-    })
-  })
-  
+        }).then(() => {
+          bot.reply(message, JSON.stringify(gradebook))
+        })
+    })})
+    */
   controller.hears(['(view )?(.*)\'s grade(s)|(book)'], 'direct_message', function(bot, message) {
-    db.users.findOne(message.data.personId).then((user) => {
-      if (user.type != 'teacher') return
-    //lots of database stuff
-    var student = message.match[1];
-    
-    bot.reply(message, student)
-  })})
-  
-  controller.hears(['(view )?grade(s)|(book)'], 'direct_message', function(bot, message) {
-    db.users.findOne(message.data.personId).then((user) => {
-      if (user.type != 'teacher') return
-    //lots of database stuff
-    var gradesString = "";
-    
-    bot.reply(message, gradesString)
-  })})
-  
+      db.users.findOne(message.data.personId).then((user) => {
+      if (user.type != 'teacher' && user.personEmail != message.match[2]) return
+          var classID = user.classrooms[0]
+          var gradebook = {}
+          let promises = [];
+          console.log(classID);
+          db.users.findByClassroom(classID).then((userArray) => {
+              console.log(userArray);
+              for (var i = 0; i < userArray.length; i++) {
+                  /* Let's add these promises to the promises array */
+                  var student = userArray[i]
+                  console.log(student.email);
+                  console.log(message.match[2]);
+                  if (student.email == message.match[2]) {
+                      promises.push(db.assignments.findByStudent(student.userID));
+                      console.log(student.userID)
+                  }
+              }
+              Promise.all(promises).then(function(list){
+                  list.forEach(function(assignmentArray){
+                      console.log(assignmentArray);
+                      for (var j = 0; j < assignmentArray.length; j++) {
+                          var assign = assignmentArray[j]
+                          gradebook[assign.title] = "" + assign.grade + " / " + assign.maxPoints
+                      }
+                      bot.reply(message, JSON.stringify(gradebook))
+                  });
+              });
+          })
+      })
+  })
+
   controller.hears(['grade (.*) for (.*)'], 'direct_message', function(bot, message) {
     db.users.findOne(message.data.personId).then((user) => {
       if (user.type != 'teacher') return
     var assignmentTitle = message.match[1];
-    var student = message.match[2];
-    //lots of database stuff
-    bot.reply(message, "here's your grades yo")
+    var target = message.match[2];
+    var classID = user.classrooms[0]
+    db.users.findByClassroom(classID).then((studentArray)=> {
+      for(var i = 0; i < studentArray.length; i++) {
+        var student = studentArray[i]
+          if (target == student.email) {
+            db.assignments.findByStudent(student.userID).then((assignmentArray) => {
+              console.log(assignmentArray)
+              for (var j = 0; j < assignmentArray.length; j++) {
+                var assign = assignmentArray[j]
+                console.log(assign.title, assignmentTitle)
+                if (assign.title == assignmentTitle) {
+                  bot.startConversation(message, function(err, convo) {
+                    convo.ask("How many points did " + target + " get out of " + assign.maxPoints + "?", function(response, convo) {
+                      db.assignments.updateGrade(student.userID, assign.title, response.text)
+                      convo.next()
+                    })
+                  })
+                }
+              }
+            })
+          }
+        }
+      })
   })})
   
   controller.hears(['((make)|(create))( new)? assignment'], 'direct_message', function(bot, message) {
@@ -132,45 +181,21 @@ module.exports = function(controller) {
         assignment.title = response.text;
         convo.ask('How many points is it worth? Just put 0 if the assignment is ungraded.', function(response, convo) {
           assignment.maxPoints = parseInt(response.text);
-          convo.ask('When should it be due?', function(response, convo) {
-            assignment.duedate = response.text;
-            convo.addQuestion('Do you want to add a description?',[
-              {
-                pattern: bot.utterances.yes,
-                callback: function(response,convo) {
-                  convo.ask('Enter your description below.', function(response, convo) {
-                    assignment.description = response.text
-                  })
-                  convo.next();
-                }
-              },
-              {
-                pattern: bot.utterances.no,
-                callback: function(response,convo) {
-                  convo.say('Okay');
-                  // do something else...
-                  convo.next();
-                }
-              },
-              {
-                default: true,
-                callback: function(response,convo) {
-                  // just repeat the question
-                  convo.repeat();
-                  convo.next();
-                }
+          var classID = user.classrooms[0]
+            assignment.description = response.text
+            db.users.findByClassroom(classID).then((studentArray)=> {
+              for(var i = 0; i < studentArray.length; i++) {
+                var student = studentArray[i]
+                db.assignments.create(student.userID, assignment.title, classID, 0, assignment.maxPoints)
               }
-            ],{},'default');
-            convo.next();
+            })
           })
           convo.next()
         })
         convo.next()
       })
-      convo.next()
     })
   })
-                                                 })
   
   controller.hears(['^make( new)? announcement'], 'direct_message', function(bot, message) {
     db.users.findOne(message.data.personId).then((user) => {
@@ -178,23 +203,22 @@ module.exports = function(controller) {
       var announcement = {title: "", body:""};
       bot.startConversation(message, function(err, convo) {
             convo.ask('What should the title of this announcement be?', function(response, convo) {
-                convo.say('adding title to announcement');
                 announcement.title = response.text;
-                convo.ask('What should the body of this announcement be?', function(response, convo) {
-                    convo.say('adding body to announcement');
+                convo.ask('What should the body say?', function(response, convo) {
                     announcement.body = response.text;
                     convo.addQuestion('Should I notify students of this announcement?',[
                       {
                         pattern: bot.utterances.yes,
                         callback: function(response,convo) {
-                          convo.say('should call api here and store ' + announcement.title);
-                          var classID = "" ;
                           convo.ask("Please type the class that this announcement should go to", function(response, convo){
                               var classname = response.text;
-                              //classID = db.GETIDFROMCLASSNAME(classname)
+                              var classID = user.classrooms[0]
+                              sendAnnouncement(announcement, classID);
+                              var notificationMessage = announcement.title + ": " + announcement.body
+                              db.notifications.create(classID, notificationMessage).then(function(user) {
+                              });
                               convo.next();
                           })
-                          sendAnnouncement(announcement, classID);
                           convo.next();
 
                         }
@@ -202,15 +226,14 @@ module.exports = function(controller) {
                       {
                         pattern: bot.utterances.no,
                         callback: function(response,convo) {
-                          convo.say('Okay');
-                          // do something else...
+                          convo.say('Not a problem. Message created. You can view all your announcements by asking to view announcements');
                           convo.next();
                         }
                       },
                       {
                         default: true,
                         callback: function(response,convo) {
-                          // just repeat the question
+                          convo.say('Sorry, didn\'t catch that. Yes or no?')
                           convo.repeat();
                           convo.next();
                         }
@@ -221,7 +244,8 @@ module.exports = function(controller) {
                 convo.next();
             });
         });
-  })});
+    })
+});
 
 
   /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
