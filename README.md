@@ -1,2 +1,0 @@
-# schoolbot
-hell ya

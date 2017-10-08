@@ -1,0 +1,7 @@
+function extractEmails(items) {
+  var emails = [];
+  for (var i = 0; i < items.length; i++) {
+    emails.push(items[i].personEmail);
+  }
+  return emails
+}
