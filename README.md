@@ -1,2 +1,2 @@
 # schoolbot
-hell ya
+Repo for TeddyTA Spark bot!
